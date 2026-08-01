@@ -45,6 +45,41 @@ export class LinkService {
     }
   }
 
+  async findAllByUserId(userId: string): Promise<LinkPublicDto[]> {
+    try {
+      const rows = await this.prisma.link.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return rows.map((r) =>
+        new LinkPublicDto({
+          id: r.id,
+          originalUrl: r.originalUrl,
+          normalizedUrl: r.normalizedUrl,
+          provider: this.mapProvider(r.provider),
+          status: this.mapStatus(r.status),
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+        }),
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error fetching links for user ${userId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new InternalServerErrorException('UNABLE_TO_FETCH_LINKS');
+    }
+  }
+
+  async findById(id: string, userId: string): Promise<unknown | null> {
+    throw new Error('Not implemented');
+  }
+
+  async remove(id: string, userId: string): Promise<void> {
+    throw new Error('Not implemented');
+  }
+
   private detectProvider(url: string): LinkProvider {
     const hostname = new URL(url).hostname.toLowerCase();
     if (hostname === 'shopee.vn' || hostname.endsWith('.shopee.vn')) return 'shopee';
@@ -77,18 +112,5 @@ export class LinkService {
         );
         return 'CREATED';
     }
-  }
-
-  // skeletons
-  async findAllByUserId(userId: string): Promise<unknown[]> {
-    throw new Error('Not implemented');
-  }
-
-  async findById(id: string, userId: string): Promise<unknown | null> {
-    throw new Error('Not implemented');
-  }
-
-  async remove(id: string, userId: string): Promise<void> {
-    throw new Error('Not implemented');
   }
 }
