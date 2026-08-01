@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { LinkPublicDto, LinkStatus, LinkProvider } from './dto/link-public.dto';
@@ -72,8 +72,37 @@ export class LinkService {
     }
   }
 
-  async findById(id: string, userId: string): Promise<unknown | null> {
-    throw new Error('Not implemented');
+  async findById(id: string, userId: string): Promise<LinkPublicDto> {
+    try {
+      // Prefer findUnique if a composite unique constraint exists on (id, userId).
+      // Since schema may vary, use findFirst which works in both cases and
+      // ensures we only return a link that belongs to the given user.
+      const row = await this.prisma.link.findFirst({
+        where: { id, userId },
+      });
+
+      if (!row) {
+        throw new NotFoundException('LINK_NOT_FOUND');
+      }
+
+      return new LinkPublicDto({
+        id: row.id,
+        originalUrl: row.originalUrl,
+        normalizedUrl: row.normalizedUrl,
+        provider: this.mapProvider(row.provider),
+        status: this.mapStatus(row.status),
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      });
+    } catch (error: unknown) {
+      if (error instanceof NotFoundException) throw error;
+
+      this.logger.error(
+        `Error fetching link ${id} for user ${userId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new InternalServerErrorException('UNABLE_TO_FETCH_LINK');
+    }
   }
 
   async remove(id: string, userId: string): Promise<void> {
