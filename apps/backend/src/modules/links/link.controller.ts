@@ -1,12 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { CreateLinkDto } from './dto/create-link.dto';
+import { LinkService } from './link.service';
 
 @Controller('links')
 export class LinkController {
+  constructor(private readonly linkService: LinkService) {}
+
   @Post()
   create(@Body() _dto: CreateLinkDto) {
-    // Skeleton only: do not call LinkService or use a fake user id.
-    // Will be implemented after JWT/Auth is integrated.
+    // Skeleton only: will use linkService once auth is implemented.
     throw new Error('Not implemented');
   }
 
