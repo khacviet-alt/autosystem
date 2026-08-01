@@ -98,7 +98,7 @@ export class LinkService {
       if (error instanceof NotFoundException) throw error;
 
       this.logger.error(
-        `Error fetching link ${id} for user ${userId}`,
+        'Error fetching link',
         error instanceof Error ? error.stack : undefined,
       );
       throw new InternalServerErrorException('UNABLE_TO_FETCH_LINK');
@@ -106,7 +106,29 @@ export class LinkService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    throw new Error('Not implemented');
+    try {
+      const row = await this.prisma.link.findFirst({
+        where: { id, userId },
+      });
+
+      if (!row) {
+        throw new NotFoundException('LINK_NOT_FOUND');
+      }
+
+      await this.prisma.link.delete({
+        where: { id: row.id },
+      });
+
+      return;
+    } catch (error: unknown) {
+      if (error instanceof NotFoundException) throw error;
+
+      this.logger.error(
+        'Error deleting link',
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new InternalServerErrorException('UNABLE_TO_DELETE_LINK');
+    }
   }
 
   private detectProvider(url: string): LinkProvider {
